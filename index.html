@@ -335,10 +335,17 @@
         }
 
         .preview-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
+            display: flex;
+            flex-direction: column;
             gap: 25px;
-            align-items: start;
+        }
+
+        #previewContent.show-tasks .preview-col.memos {
+            display: none;
+        }
+
+        #previewContent.show-memos .preview-col.tasks {
+            display: none;
         }
 
         .preview-col-title {
@@ -506,6 +513,30 @@
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
+        .btn-tab {
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #cbd5e1;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 100px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+
+        .btn-tab:hover {
+            background: rgba(255, 255, 255, 0.25);
+            color: white;
+        }
+
+        .btn-tab.active {
+            background: #2563eb;
+            border-color: #2563eb;
+            color: white;
+            box-shadow: 0 2px 8px rgba(37, 99, 235, 0.4);
+        }
+
         .btn-copy-img {
             padding: 12px 24px;
             background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
@@ -581,6 +612,72 @@
                 display: none;
             }
         }
+
+        /* P3 Search Dropdown Styles */
+        .p3-search-container {
+            position: relative;
+            width: 100%;
+        }
+        .p3-search-input {
+            width: 100%;
+            border: 1px solid transparent;
+            padding: 8px;
+            background: rgba(0, 0, 0, 0.05);
+            border-radius: 6px;
+            outline: none;
+            box-sizing: border-box;
+            font-size: 0.9rem;
+        }
+        .p3-search-input:focus {
+            background: #fff;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+        }
+        .p3-dropdown-list {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            max-height: 200px;
+            overflow-y: auto;
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            z-index: 9999;
+            margin-top: 4px;
+        }
+        .p3-dropdown-option {
+            padding: 8px 12px;
+            cursor: pointer;
+            border-bottom: 1px solid #f1f5f9;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            text-align: left;
+            transition: background-color 0.15s;
+        }
+        .p3-dropdown-option:last-child {
+            border-bottom: none;
+        }
+        .p3-dropdown-option:hover {
+            background-color: #eff6ff;
+        }
+        .p3-option-title {
+            font-weight: 700;
+            color: #1e293b;
+            font-size: 0.9rem;
+        }
+        .p3-option-sub {
+            color: #64748b;
+            font-size: 0.75rem;
+        }
+        .p3-no-result {
+            padding: 12px;
+            color: #64748b;
+            font-size: 0.85rem;
+            text-align: center;
+        }
     </style>
 </head>
 
@@ -625,6 +722,8 @@
                 <div style="display:flex;gap:4px">
                     <button onclick="createNewCard('task')"
                         style="background:#059669; color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer">＋排程</button>
+                    <button onclick="createP3Cards()"
+                        style="background:#4f46e5; color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer">P3專用排程</button>
                     <button onclick="createNewCard('memo')"
                         style="background:#d97706; color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer">＋事項</button>
                 </div>
@@ -644,6 +743,9 @@
 
     <div id="previewOverlay">
         <div class="preview-tools">
+            <button class="btn-tab active" id="tab-tasks" onclick="setPreviewTab('tasks')">📋 排程報表</button>
+            <button class="btn-tab" id="tab-memos" onclick="setPreviewTab('memos')">📌 事項報表</button>
+            <span style="color: rgba(255, 255, 255, 0.2); margin: 0 4px;">|</span>
             <button class="btn-copy-img" id="copyBtn" onclick="copyAsImage()">📸 複製截圖 (傳LINE)</button>
             <button class="btn-close-preview" onclick="closePreview()">❌ 關閉</button>
             <a href="javascript:window.print()" style="color:#ccc; text-align:center; font-size:0.8rem">或使用傳統列印</a>
@@ -652,7 +754,769 @@
     </div>
 
     <script>
-        const ITEM_CONFIG = {
+        const P3_ITEMS = [
+    {
+        "c": "A01000101",
+        "n": "香菇［直腳］",
+        "q": "",
+        "u": "kg",
+        "r": "",
+        "w": "低溫倉"
+    },
+    {
+        "c": "A01000103",
+        "n": "日燦-特挑香菇［4.5-6.5cm］",
+        "q": 20.4,
+        "u": "kg",
+        "r": "",
+        "w": "低溫倉"
+    },
+    {
+        "c": "A01000104",
+        "n": "特挑香菇［7-9cm］",
+        "q": 24,
+        "u": "kg",
+        "r": "",
+        "w": "低溫倉"
+    },
+    {
+        "c": "A01000105",
+        "n": "王品-特挑香菇［4-6cm］",
+        "q": 18,
+        "u": "kg",
+        "r": "",
+        "w": "低溫倉"
+    },
+    {
+        "c": "A01000110",
+        "n": "生展-特挑香菇［4-6cm］",
+        "q": 30,
+        "u": "kg",
+        "r": "",
+        "w": "低溫倉"
+    },
+    {
+        "c": "A01000113",
+        "n": "生展-特挑香菇［5-7cm］",
+        "q": 27,
+        "u": "kg",
+        "r": "",
+        "w": "低溫倉"
+    },
+    {
+        "c": "A01000114",
+        "n": "Ukai-特挑香菇［6-8cm］",
+        "q": 30,
+        "u": "kg",
+        "r": "",
+        "w": "低溫倉"
+    },
+    {
+        "c": "A01000115",
+        "n": "香菇［條碼］",
+        "q": 48.6,
+        "u": "400g/盒",
+        "r": "",
+        "w": "低溫倉"
+    },
+    {
+        "c": "A01000116",
+        "n": "台茂-特挑香菇［4-6cm］",
+        "q": 30.6,
+        "u": "1kg/包",
+        "r": "台茂",
+        "w": "低溫倉"
+    },
+    {
+        "c": "A010A0101",
+        "n": "香菇［大］",
+        "q": 78,
+        "u": "1kg/包",
+        "r": "子茂",
+        "w": "低溫倉"
+    },
+    {
+        "c": "A010A0102",
+        "n": "香菇［大-特］",
+        "q": 25.2,
+        "u": "台斤",
+        "r": "",
+        "w": "低溫倉"
+    },
+    {
+        "c": "A010B0101",
+        "n": "香菇［中］",
+        "q": 9.6,
+        "u": "600g/盒",
+        "r": "",
+        "w": "低溫倉"
+    },
+    {
+        "c": "A010B0102",
+        "n": "去蒂香菇［中］",
+        "q": 30,
+        "u": "kg",
+        "r": "",
+        "w": "低溫倉"
+    },
+    {
+        "c": "A010B0103",
+        "n": "香菇［中-特］",
+        "q": 25.2,
+        "u": "台斤",
+        "r": "",
+        "w": "低溫倉"
+    },
+    {
+        "c": "A010B0104",
+        "n": "開源社-香菇［中］",
+        "q": 30,
+        "u": "kg",
+        "r": "",
+        "w": "低溫倉"
+    },
+    {
+        "c": "A010C0101",
+        "n": "香菇［小］",
+        "q": 54,
+        "u": "150g/盒",
+        "r": "",
+        "w": "低溫倉"
+    },
+    {
+        "c": "A010C0101",
+        "n": "香菇［小］",
+        "q": 97.2,
+        "u": "1kg/包",
+        "r": "台茂",
+        "w": "低溫倉"
+    },
+    {
+        "c": "A010C0102",
+        "n": "香菇［小-特］",
+        "q": 25.2,
+        "u": "台斤",
+        "r": "",
+        "w": "低溫倉"
+    },
+    {
+        "c": "A010D0101",
+        "n": "香菇［小小］",
+        "q": 54,
+        "u": "600g/包",
+        "r": "雲雀",
+        "w": "低溫倉"
+    },
+    {
+        "c": "A010D0101",
+        "n": "香菇［小小］",
+        "q": 88.2,
+        "u": "300g/包",
+        "r": "大買家",
+        "w": "低溫倉"
+    },
+    {
+        "c": "A010D0101",
+        "n": "香菇［小小］",
+        "q": 69,
+        "u": "500g/包",
+        "r": "大盤大",
+        "w": "低溫倉"
+    },
+    {
+        "c": "A020C0101",
+        "n": "杏鮑菇C",
+        "q": 54,
+        "u": "200g/盒",
+        "r": "",
+        "w": "低溫倉"
+    },
+    {
+        "c": "A020C0102",
+        "n": "杏鮑菇C［箱裝］",
+        "q": 1500,
+        "u": "600g/包",
+        "r": "大買家",
+        "w": "低溫倉"
+    },
+    {
+        "c": "A020D0101",
+        "n": "杏鮑菇D",
+        "q": 60,
+        "u": "1kg/包",
+        "r": "大買家",
+        "w": "低溫倉"
+    },
+    {
+        "c": "A03000101",
+        "n": "木耳［26托盤］",
+        "q": 54,
+        "u": "200g/盒",
+        "r": "",
+        "w": "低溫倉"
+    },
+    {
+        "c": "A030A0101",
+        "n": "木耳［大］",
+        "q": 24,
+        "u": "台斤",
+        "r": "",
+        "w": "低溫倉"
+    },
+    {
+        "c": "A030A0103",
+        "n": "輕井澤-木耳［大］",
+        "q": 49.8,
+        "u": "台斤",
+        "r": "",
+        "w": "低溫倉"
+    },
+    {
+        "c": "A030B0101",
+        "n": "木耳［小］",
+        "q": 88.8,
+        "u": "台斤",
+        "r": "",
+        "w": "低溫倉"
+    },
+    {
+        "c": "A04000304",
+        "n": "有機銀耳［袋裝］",
+        "q": 79.8,
+        "u": "150g/包",
+        "r": "",
+        "w": "低溫倉"
+    },
+    {
+        "c": "A09000101",
+        "n": "秀珍菇［26托盤］",
+        "q": 49.2,
+        "u": "150g/盒",
+        "r": "",
+        "w": "低溫倉"
+    },
+    {
+        "c": "A090A0101",
+        "n": "秀珍菇A",
+        "q": 115.8,
+        "u": "1kg/包",
+        "r": "",
+        "w": "低溫倉"
+    },
+    {
+        "c": "A090A0101",
+        "n": "秀珍菇A",
+        "q": 154.8,
+        "u": "300g/包",
+        "r": "大買家",
+        "w": "低溫倉"
+    },
+    {
+        "c": "A250B0101",
+        "n": "乾香菇［大中］",
+        "q": 40.2,
+        "u": "250g/包",
+        "r": "",
+        "w": "低溫倉"
+    },
+    {
+        "c": "A250D0101",
+        "n": "乾香菇［小鈕］",
+        "q": 60,
+        "u": "80g/包",
+        "r": "",
+        "w": "低溫倉"
+    },
+    {
+        "c": "D05000105",
+        "n": "紫洋蔥［帶皮］",
+        "q": 84,
+        "u": "1公斤/包",
+        "r": "",
+        "w": "63-6(L2)"
+    },
+    {
+        "c": "E020B0101",
+        "n": "小黃瓜",
+        "q": 84,
+        "u": "600g/包",
+        "r": "",
+        "w": "63-6(L2)"
+    },
+    {
+        "c": "E040B0101",
+        "n": "櫛瓜S",
+        "q": 83.4,
+        "u": "kg",
+        "r": "",
+        "w": "63-7"
+    },
+    {
+        "c": "E040B0101",
+        "n": "櫛瓜M",
+        "q": 51,
+        "u": "kg",
+        "r": "",
+        "w": "63-7"
+    },
+    {
+        "c": "E040B0101",
+        "n": "櫛瓜B",
+        "q": 13.2,
+        "u": "kg",
+        "r": "",
+        "w": "63-7"
+    },
+    {
+        "c": "G02000201",
+        "n": "履歷水果彩椒［26托盤］",
+        "q": 47.4,
+        "u": "160g/盒",
+        "r": "",
+        "w": "63-7"
+    },
+    {
+        "c": "G030A0101",
+        "n": "牛番茄L",
+        "q": 51.6,
+        "u": "1公斤/包",
+        "r": "",
+        "w": "63-6(L2)"
+    },
+    {
+        "c": "G030B0101",
+        "n": "牛番茄M",
+        "q": 51.6,
+        "u": "1公斤/包",
+        "r": "",
+        "w": "63-6(L2)"
+    },
+    {
+        "c": "G030C0101",
+        "n": "牛番茄S",
+        "q": 51.6,
+        "u": "1公斤/包",
+        "r": "",
+        "w": "63-6(L2)"
+    },
+    {
+        "c": "G04000104",
+        "n": "大辣椒",
+        "q": 13.8,
+        "u": "600g/包",
+        "r": "",
+        "w": "63-6(L2)"
+    },
+    {
+        "c": "G04000105",
+        "n": "小辣椒",
+        "q": 13.8,
+        "u": "600g/包",
+        "r": "",
+        "w": "63-6(L2)"
+    },
+    {
+        "c": "G04000108",
+        "n": "去蒂小辣椒",
+        "q": 7.8,
+        "u": "600g/包",
+        "r": "",
+        "w": "63-6(L2)"
+    },
+    {
+        "c": "G05000101",
+        "n": "小番茄",
+        "q": 51.3,
+        "u": "600G/包",
+        "r": "",
+        "w": "63-6(L2)"
+    },
+    {
+        "c": "J02000101",
+        "n": "青蔥",
+        "q": 60.6,
+        "u": "1K/把",
+        "r": "",
+        "w": "63-6(L2)"
+    },
+    {
+        "c": "J02000101",
+        "n": "青蔥",
+        "q": 26.4,
+        "u": "10kg/件",
+        "r": "",
+        "w": "63-6(L2)"
+    },
+    {
+        "c": "L030A0102",
+        "n": "日本山藥［4L］",
+        "q": 79.8,
+        "u": "kg",
+        "r": "",
+        "w": "63-6(L2)"
+    },
+    {
+        "c": "Q11000101",
+        "n": "乾香菇絲",
+        "q": 3.6,
+        "u": "kg",
+        "r": "",
+        "w": "低溫倉"
+    },
+    {
+        "c": "Q11000103",
+        "n": "味丹-乾香菇絲",
+        "q": 7.8,
+        "u": "kg",
+        "r": "",
+        "w": "低溫倉"
+    },
+    {
+        "c": "R02000303",
+        "n": "有機銀耳露禮盒",
+        "q": "",
+        "u": "件",
+        "r": "",
+        "w": "低溫倉"
+    },
+    {
+        "c": "R07000102",
+        "n": "生鮮蒜仁［大仁］",
+        "q": 25.8,
+        "u": "600g/包",
+        "r": "",
+        "w": "低溫倉"
+    },
+    {
+        "c": "R07000103",
+        "n": "生鮮蒜仁",
+        "q": 66.6,
+        "u": "3kg/包",
+        "r": "",
+        "w": "低溫倉"
+    },
+    {
+        "c": "R07000103",
+        "n": "生鮮蒜仁",
+        "q": 32.4,
+        "u": "600g/包",
+        "r": "",
+        "w": "低溫倉"
+    },
+    {
+        "c": "T02000103",
+        "n": "進口蘿美［大包］",
+        "q": 21,
+        "u": "kg",
+        "r": "",
+        "w": "低溫倉"
+    },
+    {
+        "c": "T05000101",
+        "n": "紅捲生菜",
+        "q": 42,
+        "u": "1kg/包",
+        "r": "",
+        "w": "低溫倉"
+    },
+    {
+        "c": "T05000101",
+        "n": "紅捲生菜",
+        "q": 60,
+        "u": "300g/包",
+        "r": "",
+        "w": "低溫倉"
+    },
+    {
+        "c": "T06000101",
+        "n": "綠捲鬚生菜",
+        "q": 42,
+        "u": "1kg/包",
+        "r": "",
+        "w": "低溫倉"
+    },
+    {
+        "c": "T06000101",
+        "n": "綠捲鬚生菜",
+        "q": 60,
+        "u": "300g/包",
+        "r": "",
+        "w": "低溫倉"
+    },
+    {
+        "c": "T07000101",
+        "n": "紅橡木生菜",
+        "q": 42,
+        "u": "1kg/包",
+        "r": "",
+        "w": "低溫倉"
+    },
+    {
+        "c": "T07000101",
+        "n": "紅橡木生菜",
+        "q": 60,
+        "u": "300g/包",
+        "r": "",
+        "w": "低溫倉"
+    },
+    {
+        "c": "T08000101",
+        "n": "綠橡木生菜",
+        "q": 42,
+        "u": "1kg/包",
+        "r": "",
+        "w": "低溫倉"
+    },
+    {
+        "c": "T08000101",
+        "n": "綠橡木生菜",
+        "q": 60,
+        "u": "300g/包",
+        "r": "",
+        "w": "低溫倉"
+    },
+    {
+        "c": "T09000101",
+        "n": "紅火焰生菜",
+        "q": 42,
+        "u": "1kg/包",
+        "r": "",
+        "w": "低溫倉"
+    },
+    {
+        "c": "T09000101",
+        "n": "紅火焰生菜",
+        "q": 60,
+        "u": "300g/包",
+        "r": "",
+        "w": "低溫倉"
+    },
+    {
+        "c": "T10000101",
+        "n": "綠火焰生菜",
+        "q": 42,
+        "u": "1kg/包",
+        "r": "",
+        "w": "低溫倉"
+    },
+    {
+        "c": "T10000101",
+        "n": "綠火焰生菜",
+        "q": 60,
+        "u": "300g/包",
+        "r": "",
+        "w": "低溫倉"
+    },
+    {
+        "c": "T11000101",
+        "n": "紅蘿蔓",
+        "q": 42,
+        "u": "1kg/包",
+        "r": "",
+        "w": "低溫倉"
+    },
+    {
+        "c": "T11000101",
+        "n": "紅蘿蔓",
+        "q": 60,
+        "u": "300g/包",
+        "r": "",
+        "w": "低溫倉"
+    },
+    {
+        "c": "T12000101",
+        "n": "波士頓奶油生菜",
+        "q": 42,
+        "u": "1kg/包",
+        "r": "",
+        "w": "低溫倉"
+    },
+    {
+        "c": "T12000101",
+        "n": "波士頓奶油生菜",
+        "q": 60,
+        "u": "300g/包",
+        "r": "",
+        "w": "低溫倉"
+    },
+    {
+        "c": "T12000101",
+        "n": "波士頓奶油生菜",
+        "q": 15,
+        "u": "5kg/件",
+        "r": "",
+        "w": "低溫倉"
+    },
+    {
+        "c": "T13000101",
+        "n": "羽衣甘藍",
+        "q": 42,
+        "u": "1kg/包",
+        "r": "",
+        "w": "低溫倉"
+    },
+    {
+        "c": "T13000101",
+        "n": "羽衣甘藍",
+        "q": 60,
+        "u": "300g/包",
+        "r": "",
+        "w": "低溫倉"
+    },
+    {
+        "c": "T14000101",
+        "n": "巴西里［平葉］",
+        "q": 42,
+        "u": "1kg/包",
+        "r": "",
+        "w": "低溫倉"
+    },
+    {
+        "c": "T14000101",
+        "n": "巴西里［平葉］",
+        "q": 60,
+        "u": "300g/包",
+        "r": "",
+        "w": "低溫倉"
+    },
+    {
+        "c": "T14000101",
+        "n": "巴西里［捲葉］",
+        "q": 42,
+        "u": "1kg/包",
+        "r": "",
+        "w": "低溫倉"
+    },
+    {
+        "c": "T14000101",
+        "n": "巴西里［捲葉］",
+        "q": 60,
+        "u": "300g/包",
+        "r": "",
+        "w": "低溫倉"
+    },
+    {
+        "c": "T14000101",
+        "n": "巴西里",
+        "q": 60,
+        "u": "300g/包",
+        "r": "",
+        "w": "低溫倉"
+    },
+    {
+        "c": "T14000101",
+        "n": "巴西里",
+        "q": 42,
+        "u": "1kg/包",
+        "r": "",
+        "w": "低溫倉"
+    },
+    {
+        "c": "T14000101",
+        "n": "歐芹［平葉巴西里］",
+        "q": 60,
+        "u": "300g/包",
+        "r": "",
+        "w": "低溫倉"
+    },
+    {
+        "c": "T14000101",
+        "n": "歐芹［平葉巴西里］",
+        "q": 42,
+        "u": "1kg/包",
+        "r": "",
+        "w": "低溫倉"
+    },
+    {
+        "c": "T15000101",
+        "n": "紅包心生菜",
+        "q": 58.2,
+        "u": "600g/包",
+        "r": "",
+        "w": "低溫倉"
+    },
+    {
+        "c": "T18000101",
+        "n": "紅甜脆生菜［水耕］",
+        "q": 60,
+        "u": "1kg/包",
+        "r": "",
+        "w": "低溫倉"
+    },
+    {
+        "c": "T18000101",
+        "n": "紅甜脆生菜［水耕］",
+        "q": 42,
+        "u": "300g/包",
+        "r": "",
+        "w": "低溫倉"
+    },
+    {
+        "c": "T19000101",
+        "n": "綠甜脆生菜［水耕］",
+        "q": 60,
+        "u": "1kg/包",
+        "r": "",
+        "w": "低溫倉"
+    },
+    {
+        "c": "T19000101",
+        "n": "綠甜脆生菜［水耕］",
+        "q": 42,
+        "u": "300g/包",
+        "r": "",
+        "w": "低溫倉"
+    },
+    {
+        "c": "T20000101",
+        "n": "綠水晶生菜［水耕］",
+        "q": 60,
+        "u": "1kg/包",
+        "r": "",
+        "w": "低溫倉"
+    },
+    {
+        "c": "T20000101",
+        "n": "綠水晶生菜［水耕］",
+        "q": 42,
+        "u": "300g/包",
+        "r": "",
+        "w": "低溫倉"
+    },
+    {
+        "c": "T21000101",
+        "n": "廣東生菜",
+        "q": 60,
+        "u": "1kg/包",
+        "r": "",
+        "w": "低溫倉"
+    },
+    {
+        "c": "T21000101",
+        "n": "廣東生菜",
+        "q": 42,
+        "u": "300g/包",
+        "r": "",
+        "w": "低溫倉"
+    },
+    {
+        "n": "杏鮑菇A［箱裝］",
+        "q": 470.4,
+        "u": "kg",
+        "r": "",
+        "w": "低溫倉"
+    },
+    {
+        "c": "T17000101",
+        "n": "本產紫高麗菜",
+        "q": 155.39999999999998,
+        "u": "kg",
+        "r": "",
+        "w": "低溫倉"
+    }
+];
+
+const ITEM_CONFIG = {
             '苜蓿1K': { u: 'KG', r: '', w: '' },
             '小豆1K': { u: 'KG', r: '', w: '' },
             '櫛瓜分級': { u: 'KG', r: '*櫛瓜 (S) 直徑未滿4.5cm/支 / (M) 直徑4.5cm以上~5.5cm/支', w: '63-7' },
@@ -689,15 +1553,24 @@
                 state.data[id] = [];
                 list.querySelectorAll('.assignment-card').forEach(el => {
                     const isMemo = el.classList.contains('memo');
-                    const cardObj = { id: el.dataset.id, type: isMemo ? 'memo' : 'task', title: el.querySelector('.card-title').value };
+                    const isP3 = el.dataset.isP3 === 'true';
+                    const cardObj = { id: el.dataset.id, type: isMemo ? 'memo' : 'task', title: el.querySelector('.card-title').value, isP3: isP3 };
                     if (isMemo) cardObj.memos = Array.from(el.querySelectorAll('.memo-input')).map(input => input.value);
-                    else cardObj.items = Array.from(el.querySelectorAll('.item-row')).map(row => ({
-                        n: row.cells[1].querySelector('input').value,
-                        q: row.cells[2].querySelector('input').value,
-                        u: row.cells[3].querySelector('input').value,
-                        r: row.cells[4].querySelector('input').value,
-                        w: row.cells[5].querySelector('select').value
-                    }));
+                    else cardObj.items = Array.from(el.querySelectorAll('.item-row')).map(row => {
+                        const itemCell = row.cells[1].querySelector('input, select');
+                        let itemName = itemCell.value;
+                        if (itemCell.tagName === 'SELECT' && itemCell.selectedIndex >= 0) {
+                            const opt = itemCell.options[itemCell.selectedIndex];
+                            itemName = opt.dataset.name || (opt.value !== '' && P3_ITEMS[opt.value] ? P3_ITEMS[opt.value].n : '');
+                        }
+                        return {
+                            n: itemName,
+                            q: row.cells[2].querySelector('input').value,
+                            u: row.cells[3].querySelector('input').value,
+                            r: row.cells[4].querySelector('input').value,
+                            w: row.cells[5].querySelector('select').value
+                        };
+                    });
                     state.data[id].push(cardObj);
                 });
             });
@@ -756,14 +1629,27 @@
             const div = document.createElement('div');
             div.className = `assignment-card ${card.type}`;
             div.dataset.id = card.id || Date.now();
+            if (card.isP3) {
+                div.dataset.isP3 = 'true';
+            }
             let html = `<div class="drag-handle">⠿</div><div class="card-header"><input type="text" class="card-title" value="${card.title}" onchange="save()"><button onclick="this.closest('.assignment-card').remove();save();" style="border:none;background:none;cursor:pointer;color:#ccc;font-size:1.2rem">×</button></div>`;
             if (card.type === 'memo') {
                 html += `<div class="memo-list">${(card.memos || ['']).map((m, i) => `<div class="memo-row"><span class="memo-index">${i + 1}</span><textarea class="memo-input" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'" onchange="save()">${m}</textarea><button style="border:none;background:none;cursor:pointer;color:#ccc" onclick="const list=this.closest('.memo-list');this.parentElement.remove();save();updateMemoIndices(list)">×</button></div>`).join('')}</div><div style="display:flex;gap:5px"><button class="btn-action" onclick="addMemoRow(this)">＋ 新增事項</button><button class="btn-action" style="width:70px" onclick="pasteMemo(this)">📋 貼上</button></div>`;
             } else {
-                html += `<table class="item-table"><thead><tr><th style="width:20px"></th><th style="text-align:left">品項</th><th style="width:70px">數量</th><th style="width:55px">單位</th><th style="text-align:left">備註</th><th style="width:100px">倉別</th><th style="width:15px"></th></tr></thead><tbody>${(card.items || [{ n: '', q: '', u: '', r: '', w: '63-6(L2)' }]).map(i => `
+                html += `<table class="item-table"><thead><tr><th style="width:20px"></th><th style="text-align:left">品項</th><th style="width:70px">數量</th><th style="width:55px">單位</th><th style="text-align:left">備註</th><th style="width:100px">倉別</th><th style="width:15px"></th></tr></thead><tbody>${(card.items || [{ n: '', q: '', u: '', r: '', w: '63-6(L2)' }]).map(i => {
+                const isP3 = card.isP3;
+                return `
                 <tr class="item-row">
                     <td class="item-drag-handle">⠿</td>
-                    <td><input type="text" value="${i.n}" list="itemPresets" onchange="autoFill(this)"></td>
+                    <td>
+                        ${isP3 ? `
+                        <div class="p3-search-container">
+                            <input type="text" class="p3-search-input" value="${i.n}" onfocus="onP3Focus(this)" oninput="onP3Input(this)" onblur="onP3Blur(this)" placeholder="搜尋品號或品名...">
+                        </div>
+                        ` : `
+                        <input type="text" value="${i.n}" list="itemPresets" onchange="autoFill(this)">
+                        `}
+                    </td>
                     <td><input type="number" min="0" class="qty-input" value="${i.q}" onchange="save()" onkeydown="handleQtyEnter(event, this)"></td>
                     <td><input type="text" class="unit-input" value="${i.u || ''}" onchange="save()"></td>
                     <td><input type="text" value="${i.r}" list="taskPresets" onchange="save()"></td>
@@ -776,15 +1662,35 @@
                         </select>
                     </td>
                     <td><button style="border:none;background:none;cursor:pointer;color:#ccc" onclick="this.closest('tr').remove();save()">×</button></td>
-                </tr>`).join('')}</tbody></table><button class="btn-action" onclick="addItemRow(this)">＋ 新增細項</button>`;
+                </tr>`;
+            }).join('')}</tbody></table>`;
+                html += `<button class="btn-action" onclick="addItemRow(this)">＋ 新增細項</button>`;
             }
             div.innerHTML = html;
             return div;
         }
 
-        function createNewCard(type) {
-            const card = { id: 'c' + Date.now(), type, title: type === 'memo' ? '📌 交辦事項' : '📋 派工任務', memos: [''], items: [{ n: '', q: '', u: '', r: '' }] };
+        function createNewCard(type, isP3 = false) {
+            const title = type === 'memo' ? '📌 交辦事項' : (isP3 ? '📋 P3專用排程' : '📋 派工任務');
+            const card = { id: 'c' + Date.now(), type, title, memos: [''], items: [{ n: '', q: '', u: '', r: '', w: isP3 ? '低溫倉' : '63-6(L2)' }], isP3 };
             document.getElementById('list-pool').prepend(buildCard(card));
+            save(); render();
+        }
+
+        function createP3Cards() {
+            const suffixes = ['C', 'B', 'A'];
+            const now = Date.now();
+            suffixes.forEach((suffix, idx) => {
+                const card = {
+                    id: 'c' + (now + idx),
+                    type: 'task',
+                    title: `📋 P3專用排程-${suffix}`,
+                    memos: [''],
+                    items: [{ n: '', q: '', u: '', r: '', w: '低溫倉' }],
+                    isP3: true
+                };
+                document.getElementById('list-pool').prepend(buildCard(card));
+            });
             save(); render();
         }
 
@@ -814,12 +1720,111 @@
             updateMemoIndices(list); save();
         }
 
+        
+
+
+        function renderP3DropdownOptions(input, dropdown, filterText = '') {
+            dropdown.innerHTML = '';
+            const val = filterText.toLowerCase().trim();
+            const matched = P3_ITEMS.filter(item => {
+                const code = (item.c || '').toLowerCase();
+                const name = (item.n || '').toLowerCase();
+                return code.includes(val) || name.includes(val);
+            });
+
+            if (matched.length === 0) {
+                const emptyDiv = document.createElement('div');
+                emptyDiv.className = 'p3-no-result';
+                emptyDiv.innerText = '🔍 查無此品號或品名';
+                dropdown.appendChild(emptyDiv);
+                return;
+            }
+
+            // Limit to 50 options to prevent lag
+            const limit = 50;
+            const toRender = matched.slice(0, limit);
+
+            toRender.forEach(item => {
+                const idx = P3_ITEMS.indexOf(item);
+                const optDiv = document.createElement('div');
+                optDiv.className = 'p3-dropdown-option';
+                optDiv.innerHTML = `
+                    <span class="p3-option-title">${item.n}</span>
+                    <span class="p3-option-sub">品號: ${item.c || '無'} | 規格: ${item.u || '無'} | 備註: ${item.r || '無'}</span>
+                `;
+                optDiv.addEventListener('pointerdown', (e) => {
+                    e.preventDefault();
+                    selectP3Item(input, idx);
+                });
+                dropdown.appendChild(optDiv);
+            });
+        }
+
+        function onP3Focus(input) {
+            document.querySelectorAll('.p3-dropdown-list').forEach(dd => dd.style.display = 'none');
+            const container = input.closest('.p3-search-container');
+            let dropdown = container.querySelector('.p3-dropdown-list');
+            if (!dropdown) {
+                dropdown = document.createElement('div');
+                dropdown.className = 'p3-dropdown-list';
+                container.appendChild(dropdown);
+            }
+            renderP3DropdownOptions(input, dropdown, input.value);
+            dropdown.style.display = 'block';
+        }
+
+        function onP3Input(input) {
+            const container = input.closest('.p3-search-container');
+            const dropdown = container.querySelector('.p3-dropdown-list');
+            if (dropdown) {
+                renderP3DropdownOptions(input, dropdown, input.value);
+                dropdown.style.display = 'block';
+            }
+        }
+
+        function onP3Blur(input) {
+            const container = input.closest('.p3-search-container');
+            const dropdown = container.querySelector('.p3-dropdown-list');
+            if (dropdown) {
+                setTimeout(() => {
+                    dropdown.style.display = 'none';
+                }, 150);
+            }
+        }
+
+        function selectP3Item(input, idx) {
+            const item = P3_ITEMS[idx];
+            input.value = item.n;
+            const tr = input.closest('tr');
+            if (tr) {
+                tr.cells[2].querySelector('input').value = ""; // Quantity blank
+                tr.cells[3].querySelector('input').value = item.u; // Unit
+                tr.cells[4].querySelector('input').value = item.r; // Remark
+                tr.cells[5].querySelector('select').value = item.w; // Warehouse
+            }
+            const container = input.closest('.p3-search-container');
+            const dropdown = container.querySelector('.p3-dropdown-list');
+            if (dropdown) {
+                dropdown.style.display = 'none';
+            }
+            save();
+        }
+
         function addItemRow(btn) {
+            const cardEl = btn.closest('.assignment-card');
+            const isP3 = cardEl && cardEl.dataset.isP3 === 'true';
             const tr = document.createElement('tr');
             tr.className = 'item-row';
+            
+            const itemTd = isP3 ? `<td>
+                <div class="p3-search-container">
+                    <input type="text" class="p3-search-input" onfocus="onP3Focus(this)" oninput="onP3Input(this)" onblur="onP3Blur(this)" placeholder="搜尋品號或品名...">
+                </div>
+            </td>` : `<td><input type="text" list="itemPresets" onchange="autoFill(this)"></td>`;
+
             tr.innerHTML = `
                 <td class="item-drag-handle">⠿</td>
-                <td><input type="text" list="itemPresets" onchange="autoFill(this)"></td>
+                ${itemTd}
                 <td><input type="number" min="0" class="qty-input" onchange="save()" onkeydown="handleQtyEnter(event, this)"></td>
                 <td><input type="text" class="unit-input" onchange="save()"></td>
                 <td><input type="text" list="taskPresets" onchange="save()"></td>
@@ -866,7 +1871,7 @@
 
             content.innerHTML = `
                 <div class="preview-header">
-                    <h1>理貨派工報表</h1>
+                    <h1 id="previewHeaderTitle">理貨派工報表</h1>
                     <div class="preview-info">
                         <p>日期：<strong>${state.date}</strong></p>
                     </div>
@@ -908,7 +1913,12 @@
 
                 clone.querySelectorAll('input, textarea, select').forEach(el => {
                     const span = document.createElement('span');
-                    span.innerText = el.value || '';
+                    if (el.tagName === 'SELECT' && el.classList.contains('p3-row-select')) {
+                        const opt = el.options[el.selectedIndex];
+                        span.innerText = opt ? (opt.dataset.name || (opt.value !== '' && P3_ITEMS[opt.value] ? P3_ITEMS[opt.value].n : '')) : '';
+                    } else {
+                        span.innerText = el.value || '';
+                    }
                     span.className = el.className;
                     el.replaceWith(span);
                 });
@@ -918,6 +1928,28 @@
             });
 
             overlay.style.display = 'block';
+            setPreviewTab('tasks');
+        }
+
+        function setPreviewTab(tabType) {
+            const content = document.getElementById('previewContent');
+            const titleEl = document.getElementById('previewHeaderTitle');
+            const tabTasks = document.getElementById('tab-tasks');
+            const tabMemos = document.getElementById('tab-memos');
+
+            if (tabType === 'tasks') {
+                tabTasks.classList.add('active');
+                tabMemos.classList.remove('active');
+                content.classList.add('show-tasks');
+                content.classList.remove('show-memos');
+                if (titleEl) titleEl.innerText = '理貨排程報表';
+            } else {
+                tabTasks.classList.remove('active');
+                tabMemos.classList.add('active');
+                content.classList.add('show-memos');
+                content.classList.remove('show-tasks');
+                if (titleEl) titleEl.innerText = '交辦事項報表';
+            }
         }
 
         function closePreview() { document.getElementById('previewOverlay').style.display = 'none'; }
