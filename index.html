@@ -423,23 +423,23 @@
         }
 
         #previewContent th:nth-child(1) {
-            width: 40px;
+            width: 35px;
         }
 
         #previewContent th:nth-child(2) {
-            width: 30%;
+            width: 28%;
         }
 
         #previewContent th:nth-child(3) {
-            width: 80px;
+            width: 75px;
         }
 
         #previewContent th:nth-child(4) {
-            width: 60px;
+            width: 105px;
         }
 
         #previewContent th:nth-child(6) {
-            width: 100px;
+            width: 95px;
         }
 
         #previewContent td {
@@ -491,12 +491,12 @@
         }
 
         #previewContent .unit-input {
-            font-size: 0.9rem !important;
-            color: #64748b;
+            font-size: 0.95rem !important;
+            color: #475569;
             font-weight: 700;
             text-align: center;
-            display: block;
-            margin-top: 4px;
+            display: inline-block;
+            white-space: nowrap;
         }
 
         #previewContent .memo-row {
@@ -731,6 +731,10 @@
         <option value="分裝生菜">
         <option value="整理生菜">
         <option value="雲雀小小">
+        <option value="香菇［小］">
+        <option value="秀珍菇A">
+        <option value="紅包心生菜">
+        <option value="青蔥">
     </datalist>
 
     <datalist id="taskPresets">
@@ -1535,10 +1539,36 @@
                 "u": "kg",
                 "r": "",
                 "w": ""
+            },
+            {
+                "c": "",
+                "n": "分裝生菜",
+                "q": "",
+                "u": "",
+                "r": "",
+                "w": ""
+            },
+            {
+                "c": "",
+                "n": "整理生菜",
+                "q": "",
+                "u": "",
+                "r": "",
+                "w": ""
+            },
+            {
+                "c": "A010D0101",
+                "n": "雲雀小小",
+                "q": "",
+                "u": "600g/包",
+                "r": "",
+                "w": ""
             }
         ];
 
         const ITEM_CONFIG = {
+            '苜蓿': { u: 'KG', r: '', w: '' },
+            '小豆': { u: 'KG', r: '', w: '' },
             '苜蓿1K': { u: 'KG', r: '', w: '' },
             '小豆1K': { u: 'KG', r: '', w: '' },
             '櫛瓜分級': { u: 'KG', r: '*櫛瓜 (S) 直徑未滿4.5cm/支 / (M) 直徑4.5cm以上~5.5cm/支', w: '63-7' },
@@ -1547,7 +1577,12 @@
             '大買家杏D': { u: 'KG', r: '', w: '' },
             '分裝生菜': { u: '', r: '', w: '' },
             '整理生菜': { u: '', r: '', w: '' },
-            '雲雀小小': { u: '600g/包', r: '', w: '' }
+            '雲雀小小': { u: '600g/包', r: '', w: '' },
+            '香菇［小］': { u: '1kg/包', r: '台茂', w: '' },
+            '秀珍菇A': { u: '1kg/包', r: '', w: '' },
+            '紅包心生菜': { u: '600g/包', r: '進口600~850g間，若無法湊足請通知現場主管', w: '' },
+            '紅包心': { u: '600g/包', r: '進口600~850g間，若無法湊足請通知現場主管', w: '' },
+            '青蔥': { u: '10kg/件', r: '', w: '' }
         };
 
         let state = {
@@ -1619,7 +1654,12 @@
             }
 
             state.date = new Date().toISOString().split('T')[0]; // 預設日期為當日
-            document.getElementById('mainDate').value = state.date;
+            const mainDateEl = document.getElementById('mainDate');
+            mainDateEl.value = state.date;
+            mainDateEl.onchange = function () {
+                state.date = this.value;
+                save();
+            };
             render();
         }
 
@@ -1664,7 +1704,7 @@
             if (card.type === 'memo') {
                 html += `<div class="memo-list">${(card.memos || ['']).map((m, i) => `<div class="memo-row"><span class="memo-index">${i + 1}</span><textarea class="memo-input" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'" onchange="save()">${m}</textarea><button style="border:none;background:none;cursor:pointer;color:#ccc" onclick="const list=this.closest('.memo-list');this.parentElement.remove();save();updateMemoIndices(list)">×</button></div>`).join('')}</div><div style="display:flex;gap:5px"><button class="btn-action" onclick="addMemoRow(this)">＋ 新增事項</button><button class="btn-action" style="width:70px" onclick="pasteMemo(this)">📋 貼上</button></div>`;
             } else {
-                html += `<table class="item-table"><thead><tr><th style="width:20px"></th><th style="width:25px; text-align:center">#</th><th style="text-align:left">品項</th><th style="width:70px">數量</th><th style="width:55px">單位</th><th style="text-align:left">備註</th><th style="width:100px">倉別</th><th style="width:15px"></th></tr></thead><tbody>${(card.items || [{ n: '', q: '', u: '', r: '', w: card.isP3 ? '' : '63-6(L2)' }]).map((i, idx) => {
+                html += `<table class="item-table"><thead><tr><th style="width:20px"></th><th style="width:25px; text-align:center">#</th><th style="text-align:left">品項</th><th style="width:65px">數量</th><th style="width:75px">單位</th><th style="text-align:left">備註</th><th style="width:100px">倉別</th><th style="width:15px"></th></tr></thead><tbody>${(card.items || [{ n: '', q: '', u: '', r: '', w: card.isP3 ? '' : '63-6(L2)' }]).map((i, idx) => {
                     const isP3 = card.isP3;
                     const displayW = (isP3 && !i.n) ? '' : i.w;
                     return `
@@ -1702,12 +1742,66 @@
 
         function createNewCard(type, isP3 = false) {
             const title = type === 'memo' ? '📌 交辦事項' : (isP3 ? '📋 P3專用排程' : '📋 派工任務');
-            const card = { id: 'c' + Date.now(), type, title, memos: [''], items: [{ n: '', q: '', u: '', r: '', w: isP3 ? '' : '63-6(L2)' }], isP3 };
+            let items = [{ n: '', q: '', u: '', r: '', w: isP3 ? '' : '63-6(L2)' }];
+            if (type === 'task' && !isP3) {
+                items = [
+                    { n: '苜蓿1K', q: '', u: 'KG', r: '', w: '63-6(L2)' },
+                    { n: '小豆1K', q: '', u: 'KG', r: '', w: '63-6(L2)' }
+                ];
+            }
+            const card = { id: 'c' + Date.now(), type, title, memos: [''], items, isP3 };
             document.getElementById('list-pool').prepend(buildCard(card));
             save(); render();
         }
 
+        function getP3DefaultItems(suffix, dayOfWeek) {
+            const items = [];
+
+            // 禮拜一到禮拜六 (1~6)：A組預設 香菇［小］1KG、秀珍菇1KG
+            if (suffix === 'A' && dayOfWeek >= 1 && dayOfWeek <= 6) {
+                items.push({ n: '香菇［小］', q: '', u: '1kg/包', r: '台茂', w: '' });
+                items.push({ n: '秀珍菇A', q: '', u: '1kg/包', r: '', w: '' });
+            }
+
+            // 禮拜一到禮拜六 (1~6)：B組預設 紅包心生菜600G、青蔥10KG/件
+            if (suffix === 'B' && dayOfWeek >= 1 && dayOfWeek <= 6) {
+                items.push({ n: '紅包心生菜', q: '', u: '600g/包', r: '進口600~850g間，若無法湊足請通知現場主管', w: '' });
+                items.push({ n: '青蔥', q: '', u: '10kg/件', r: '', w: '' });
+            }
+
+            // 禮拜三、五、日 (3, 5, 0)：每組都有分裝生菜
+            if (dayOfWeek === 3 || dayOfWeek === 5 || dayOfWeek === 0) {
+                items.push({ n: '分裝生菜', q: '', u: '', r: '', w: '' });
+            }
+
+            // 禮拜二、六 (2, 6)：整理生菜
+            if (dayOfWeek === 2 || dayOfWeek === 6) {
+                items.push({ n: '整理生菜', q: '', u: '', r: '', w: '' });
+            }
+
+            // 禮拜一、禮拜四 (1, 4)：雲雀小小600G
+            if (dayOfWeek === 1 || dayOfWeek === 4) {
+                items.push({ n: '雲雀小小', q: '', u: '600g/包', r: '', w: '' });
+            }
+
+            // 若該組當天無預設品項，提供一行空白列
+            if (items.length === 0) {
+                items.push({ n: '', q: '', u: '', r: '', w: '' });
+            }
+
+            return items;
+        }
+
         function createP3Cards() {
+            const dateVal = document.getElementById('mainDate').value || state.date;
+            let dayOfWeek = new Date().getDay();
+            if (dateVal) {
+                const parts = dateVal.split('-').map(Number);
+                if (parts.length === 3) {
+                    dayOfWeek = new Date(parts[0], parts[1] - 1, parts[2]).getDay();
+                }
+            }
+
             const suffixes = ['C', 'B', 'A'];
             const now = Date.now();
             suffixes.forEach((suffix, idx) => {
@@ -1716,7 +1810,7 @@
                     type: 'task',
                     title: `📋 P3專用排程-${suffix}`,
                     memos: [''],
-                    items: [{ n: '', q: '', u: '', r: '', w: '' }],
+                    items: getP3DefaultItems(suffix, dayOfWeek),
                     isP3: true
                 };
                 document.getElementById('list-pool').prepend(buildCard(card));
